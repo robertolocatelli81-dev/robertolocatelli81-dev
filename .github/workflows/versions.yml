@@ -1,0 +1,17 @@
+name: versions
+# The version column of the project table must equal each repository's newest release: checked on every change here and
+# every Monday, so a release elsewhere that leaves this page behind turns this repository red.
+on:
+  push:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 6 * * 1"
+jobs:
+  table-matches-releases:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every version in the table is the newest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 check_versions.py README.md
