@@ -1,7 +1,9 @@
 # Track record — where others name this work
 
-Each entry links to text written by someone else, in their own repository or document, and quotes it. Checked against
-the source on 2026-10-05. Most of the work below was done by my AI agent (Noûs) under my revocable mandate; I review it
+Each entry in the sections below links to text written by someone else, in their own repository or document, and quotes it;
+the exception is «Pull requests merged in others' repositories», which lists my own pull requests that their maintainers
+merged. Checked against
+the source on 2026-11-14 (every quote below re-read in its source that day). Most of the work below was done by my AI agent (Noûs) under my revocable mandate; I review it
 and I am accountable for it.
 
 ## Named in specifications
@@ -10,6 +12,14 @@ and I am accountable for it.
   work: «The split between keys a relying party happens to hold and a list it declares complete is Roberto Locatelli's
   (x402 TSC issue #4, 2026-09-24).» The draft also records my review inputs and my reproduction of the first
   from-scratch cold build. [datatracker](https://datatracker.ietf.org/doc/draft-krausz-verification-state/)
+- **IETF Internet-Draft `draft-dogru-cedulon-decision-profile-04`** (individual draft): «Tymofii Pidlisnyi (Agent
+  Passport System) and Roberto Locatelli (cryptovalid-opencore) ran the second implementation's test vectors with
+  verifiers of their own; the first three changes of -04 are their findings.»
+  [draft](https://www.ietf.org/archive/id/draft-dogru-cedulon-decision-profile-04.txt)
+- **IETF Internet-Draft `draft-sansone-axes-evidence-envelope-00`** (individual draft), implementation experience:
+  «robertolocatelli81-dev: from the specification text only, with an independent canonicaliser and no AXES code.»; and
+  in the acknowledgments, «robertolocatelli81-dev (Noûs) for specification-only reproduction of the corpus of record.»
+  [draft](https://www.ietf.org/archive/id/draft-sansone-axes-evidence-envelope-00.txt)
 - **Elara protocol specification**, Appendix D «Independent implementations»: an independent reader of their vector set
   by Noûs for @robertolocatelli81-dev, «written from this spec's text with the reference implementations unopened»,
   «21 of 25 vectors byte-agreed».
@@ -34,8 +44,9 @@ and I am accountable for it.
   [interop/cryptovalid-opencore-aps-da95834](https://github.com/Agent-Authority-Conformance/aps-conformance-suite/tree/main/interop/cryptovalid-opencore-aps-da95834)
 - **ScopeBlind agent-governance test vectors**: the key-window cases «follow a measurement by @giskard09 and
   @robertolocatelli81-dev». [verifier-vectors/README.md](https://github.com/ScopeBlind/agent-governance-testvectors/blob/main/verifier-vectors/README.md)
-  The repository README lists cryptovalid-opencore among the implementations «independent of» the draft's author (the
-  driver under `implementations/` is mine, merged as PR #25). [README.md](https://github.com/ScopeBlind/agent-governance-testvectors/blob/main/README.md)
+  The repository README counts cryptovalid-opencore among the «three independent Python implementations» of the four
+  that «pass every check here in CI» (the driver under `implementations/` is mine, merged as PR #25); its status table
+  (22 October 2026 run) marks cryptovalid-opencore «Conformant», one of four implementations so marked. [README.md](https://github.com/ScopeBlind/agent-governance-testvectors/blob/main/README.md)
 
 ## Fixes made upstream from my reports
 
@@ -45,12 +56,29 @@ and I am accountable for it.
 - **Google cybernetic-agent-governance-engine**: [issue #286](https://github.com/google/cybernetic-agent-governance-engine/issues/286),
   fixed in [PR #394](https://github.com/google/cybernetic-agent-governance-engine/pull/394): «The diagnosis and
   reproduction were exactly right.» ([comment](https://github.com/google/cybernetic-agent-governance-engine/issues/286#issuecomment-5983037241))
+- **Cloudflare web-bot-auth**: [issue #153](https://github.com/cloudflare/web-bot-auth/issues/153) (the Rust verifier
+  accepted a signature whose `alg` did not match the key), fixed in [PR #157](https://github.com/cloudflare/web-bot-auth/pull/157),
+  merged: «RFC 9421 Section 3.2, step 6: when `alg` is present it must name a registered algorithm and agree with the
+  algorithm of the resolved key. Fixes #153.»
+- **DCMTK (OFFIS)**: commit [d23d76b](https://github.com/DCMTK/dcmtk/commit/d23d76b34493) «Correctly print cert
+  validity dates after 2049»: «Thanks to Roberto Locatelli for the bug report and fix.»
 - **giskard09/argentum-core**, `CHANGELOG.md` (2026-09-23): the `"tool"` / `tool_name` defect in the
   `farley-receipt-signature` vectors, «Reported by robertolocatelli81-dev (Noûs) in #96», fixed the same day.
   [CHANGELOG.md](https://github.com/giskard09/argentum-core/blob/main/CHANGELOG.md)
 - **FINOS AI governance framework**: [issue #337](https://github.com/finos/ai-governance-framework/issues/337), the
-  requester withdrew a forward reference in the decision receipt after my reading of the draft: «you're right, and thank
-  you both.» ([comment](https://github.com/finos/ai-governance-framework/issues/337#issuecomment-5867876375))
+  author of the companion proposal #359 withdrew the request for a forward reference in the decision receipt after
+  giskard09 and I answered it: «you're right, and thank you both. […] I withdraw the request for a forward reference in
+  the decision receipt.» ([comment](https://github.com/finos/ai-governance-framework/issues/337#issuecomment-5867876375))
+
+## Pull requests merged in others' repositories
+
+[x402-foundation/x402#3965](https://github.com/x402-foundation/x402/pull/3965) (specification),
+[SynapseKit/SynapseKit#1077](https://github.com/SynapseKit/SynapseKit/pull/1077) (EU AI Act record-keeping mode),
+[TKCollective/tanilo-receipt-spec#11](https://github.com/TKCollective/tanilo-receipt-spec/pull/11),
+[babyblueviper1/preaction-governance-conformance#11](https://github.com/babyblueviper1/preaction-governance-conformance/pull/11) and
+[#14](https://github.com/babyblueviper1/preaction-governance-conformance/pull/14),
+[Agent-Authority-Conformance/aps-conformance-suite#149](https://github.com/Agent-Authority-Conformance/aps-conformance-suite/pull/149),
+[ScopeBlind/agent-governance-testvectors#25](https://github.com/ScopeBlind/agent-governance-testvectors/pull/25).
 
 ## Used by others
 
