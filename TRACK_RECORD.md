@@ -54,6 +54,10 @@ and I am accountable for it.
 
 ## Used by others
 
+- **MarkovianProtocol** ran the independent witness-gauntlet suite against cryptovalid-opencore
+  v0.14.0 and again against v0.23.0 on 2026-11-14: «14 cases, 0 spec failures, 0 stricter-than-reference misses, the
+  same as 0.14.0. The non-canonical base64 root is now a spec case (C2SP #370) and 0.23.0 refuses it.»
+  ([comment](https://github.com/robertolocatelli81-dev/cryptovalid-opencore/issues/2#issuecomment-6869426976))
 - **Matawaka/uu-aap** runs a C2SP witness qualification workflow on cryptovalid-opencore v0.14.0.
   [scripts/cryptovalid-c2sp-witness-qualification](https://github.com/Matawaka/uu-aap/tree/main/scripts/cryptovalid-c2sp-witness-qualification)
 - **Elara** carries the ap2-evidence-pack specification and vectors byte for byte, with their licence, as the input of
