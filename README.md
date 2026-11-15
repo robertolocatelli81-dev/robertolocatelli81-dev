@@ -31,4 +31,4 @@ requests of mine merged in others' repositories: [TRACK_RECORD.md](TRACK_RECORD.
 
 Package index (PEP 503, sha256-pinned to GitHub release assets): https://robertolocatelli81-dev.github.io/pypi/
 
-Contact: roberto.locatelli.81@gmail.com — pilots and interoperability reports welcome; the answer says what is measured and what is not.
+Contact: roberto.locatelli.81@gmail.com — interoperability reports welcome; the answer says what is measured and what is not.
