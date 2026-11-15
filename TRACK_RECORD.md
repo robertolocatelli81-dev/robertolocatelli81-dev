@@ -60,6 +60,12 @@ and I am accountable for it.
   accepted a signature whose `alg` did not match the key), fixed in [PR #157](https://github.com/cloudflare/web-bot-auth/pull/157),
   merged: «RFC 9421 Section 3.2, step 6: when `alg` is present it must name a registered algorithm and agree with the
   algorithm of the resolved key. Fixes #153.»
+- **Qiskit Metal** (qiskit-community): [issue #1252](https://github.com/qiskit-community/qiskit-metal/issues/1252)
+  (`mathieu_level` returned the energy of another level at ng = 0 and 1/2 for some Ej/Ec, through
+  `scipy.special.mathieu_a`/`mathieu_b`), fixed with my patch and tests in [PR #1261](https://github.com/qiskit-community/qiskit-metal/pull/1261),
+  merged; changelog: «Reported, with the fix, by @robertolocatelli81-dev.» Maintainer: «the full scan against a
+  charge-basis reference, the trail to the scipy issues, and a patch that was ready to apply made this a pleasure
+  to fix.» ([comment](https://github.com/qiskit-community/qiskit-metal/issues/1252#issuecomment-6901786321))
 - **DCMTK (OFFIS)**: commit [d23d76b](https://github.com/DCMTK/dcmtk/commit/d23d76b34493) «Correctly print cert
   validity dates after 2049»: «Thanks to Roberto Locatelli for the bug report and fix.»
 - **giskard09/argentum-core**, `CHANGELOG.md` (2026-09-23): the `"tool"` / `tool_name` defect in the
