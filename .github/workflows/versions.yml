@@ -15,3 +15,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 check_versions.py README.md
+  prose-matches-table-and-track-record:
+    # Offline: the counts and names the README states («all seven», «three IETF Internet-Drafts», «seven pull requests»,
+    # the «Start here» packages…) against the table and TRACK_RECORD.md; first the tests, so that a check that can no
+    # longer fail is seen before its green result is trusted.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: The checks can fail (unit tests with positive controls)
+        run: python3 -m unittest -v test_check_profile
+      - name: Every count in the prose equals what the page lists
+        run: python3 check_profile.py README.md TRACK_RECORD.md
