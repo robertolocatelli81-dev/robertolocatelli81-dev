@@ -14,7 +14,9 @@ permissions:
   contents: read
 jobs:
   table-matches-releases:
-    if: github.event.schedule != '17 5 * * *'
+    # Not in the daily update run, nor in a run started by hand: there the update job checks the new page itself, and this
+    # job would read the page as it was before the update (a red run on 2026-11-23, 45245456118).
+    if: github.event_name == 'push' || github.event.schedule == '41 6 * * 1'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -26,7 +28,9 @@ jobs:
     # Offline: the counts and names the README states («all seven», «three IETF Internet-Drafts», «seven pull requests»,
     # the «Start here» packages…) against the table and TRACK_RECORD.md; first the tests, so that a check that can no
     # longer fail is seen before its green result is trusted.
-    if: github.event.schedule != '17 5 * * *'
+    # Not in the daily update run, nor in a run started by hand: there the update job checks the new page itself, and this
+    # job would read the page as it was before the update (a red run on 2026-11-23, 45245456118).
+    if: github.event_name == 'push' || github.event.schedule == '41 6 * * 1'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
