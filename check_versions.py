@@ -4,7 +4,8 @@ newest release tag. Run by .github/workflows/versions.yml on every change and ev
 README.md`, with `gh` logged in or GH_TOKEN set); exit 1 on any mismatch. Found on 2026-10-05: ap2-evidence-pack 1.2.2 in the table,
 v1.3.0 released. A table row that links a repository of this account and whose version this script cannot read is a
 mismatch too, and so is a table with no row at all: before 2026-11-16 such a row was skipped in silence and the run
-said `mismatches: 0` (measured: test_check_profile.py, class CheckVersions). Read-only; no write anywhere."""
+said `mismatches: 0` (measured: test_check_profile.py, class CheckVersions). Read-only, unless `--write` is given
+(update(), below): then the version column of the file is rewritten."""
 import json
 import re
 import subprocess
@@ -45,5 +46,48 @@ def main(path: str) -> int:
     return 1 if bad else 0
 
 
+SEMVER = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+\Z")   # ASCII digits only: \d also matches ١, １
+
+
+def update(path: str) -> int:
+    """--write (2026-11-23): sets the version column of each table row to the newest release, and nothing else (the
+    descriptions are claims and stay with a person). Exit 0 with or without a change; exit 1, file untouched, when a
+    row cannot be read or a release tag is not X.Y.Z."""
+    with open(path, encoding="utf-8", newline="") as fh:   # newline="": line endings are kept as they are
+        lines = fh.readlines()
+    out, changed, rows = [], [], 0
+    for line in lines:
+        m = ROW.match(line)
+        if not m:
+            if LINKED.match(line):
+                print(json.dumps({"row": line.strip()[:120], "ok": False, "why": "version not readable in this row"}))
+                return 1
+            out.append(line)
+            continue
+        rows += 1
+        tag = latest_tag(m.group("repo"))
+        if not SEMVER.match(tag):
+            print(json.dumps({"repo": m.group("repo"), "ok": False, "why": f"release tag {tag!r} is not X.Y.Z"}))
+            return 1
+        if tag != m.group("ver"):
+            line = line[:m.start("ver")] + tag + line[m.end("ver"):]
+            changed.append(f"{m.group('repo')} {m.group('ver')} -> {tag}")
+        out.append(line)
+    if not rows:
+        print(json.dumps({"ok": False, "why": "no table row read: nothing was updated"}))
+        return 1
+    if changed:
+        with open(path, "w", encoding="utf-8", newline="") as fh:
+            fh.writelines(out)
+    print("rows:", rows)
+    print("changed:", "; ".join(changed) if changed else "none")
+    return 0
+
+
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else "README.md"))
+    args = sys.argv[1:]
+    write = args[:1] == ["--write"]
+    rest = args[1:] if write else args
+    if len(rest) > 1 or any(a.startswith("-") for a in rest):   # an argument that is not understood is an error
+        sys.exit("usage: check_versions.py [--write] [README.md]")
+    sys.exit((update if write else main)(rest[0] if rest else "README.md"))

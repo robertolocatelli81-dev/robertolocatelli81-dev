@@ -8,6 +8,8 @@ the table, a reworded sentence) cannot break them; only ThePageAsItIs reads the 
 import contextlib
 import io
 import os
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -310,6 +312,97 @@ class CheckVersions(unittest.TestCase):
         code, out = self.run_on(README, {"cryptovalid-opencore": "0.26.0"})
         self.assertEqual(code, 1)
         self.assertIn("mismatches: 1", out)
+
+    def write_on(self, readme, latest=None):
+        table = {r["repo"]: check_versions.ROW.match(l).group("ver") for l in README.splitlines()
+                 for r in [check_profile.ROW.match(l)] if r for r in [r.groupdict()]}
+        table.update(latest or {})
+        old = check_versions.latest_tag
+        check_versions.latest_tag = lambda repo: table[repo]
+        try:
+            with tempfile.TemporaryDirectory() as d:
+                p = os.path.join(d, "README.md")
+                with open(p, "w", encoding="utf-8") as fh:
+                    fh.write(readme)
+                out = io.StringIO()
+                with contextlib.redirect_stdout(out):
+                    code = check_versions.update(p)
+                with open(p, encoding="utf-8") as fh:
+                    return code, out.getvalue(), fh.read()
+        finally:
+            check_versions.latest_tag = old
+
+    def test_write_sets_only_the_version_of_the_row_behind(self):
+        code, out, after = self.write_on(README, {"cryptovalid-opencore": "0.99.0"})
+        self.assertEqual(code, 0)
+        self.assertIn("cryptovalid-opencore 0.25.0 -> 0.99.0", out)
+        diff = [(x, y) for x, y in zip(README.splitlines(), after.splitlines()) if x != y]
+        self.assertEqual(len(diff), 1)                                   # one line, and in it only the version
+        self.assertEqual(diff[0][0].replace("| 0.25.0 ·", "| 0.99.0 ·"), diff[0][1])
+        self.assertEqual(len(README.splitlines()), len(after.splitlines()))
+
+    def test_write_with_nothing_behind_changes_nothing(self):
+        code, out, after = self.write_on(README)
+        self.assertEqual((code, after), (0, README))
+        self.assertIn("changed: none", out)
+
+    def test_write_refuses_a_tag_that_is_not_semver_and_leaves_the_file(self):
+        code, out, after = self.write_on(README, {"cryptovalid-opencore": "0.26.0-rc1"})
+        self.assertEqual((code, after), (1, README))
+        self.assertIn("is not X.Y.Z", out)
+
+    def test_write_on_a_page_without_table_rows_is_an_error(self):
+        code, out, after = self.write_on("# no table here\n")
+        self.assertEqual((code, after), (1, "# no table here\n"))
+        self.assertIn("nothing was updated", out)
+
+    def test_write_refuses_tags_that_only_look_like_semver(self):
+        for tag in ("\u0661.\u0662.\u0663", "\uff11.\uff12.\uff13", "1.2.3.4", "x1.2.3", "1.2.3\n| x", "1.2.3 ", ""):
+            code, out, after = self.write_on(README, {"cryptovalid-opencore": tag})
+            self.assertEqual((code, after), (1, README), repr(tag))
+        self.assertEqual(self.write_on(README, {"cryptovalid-opencore": "10.20.30"})[0], 0)      # positive control
+
+    def test_write_keeps_crlf_line_endings(self):
+        crlf = README.replace("\n", "\r\n")
+        check_versions_latest = check_versions.latest_tag
+        check_versions.latest_tag = lambda repo: "0.99.0" if repo == "cryptovalid-opencore" else check_versions.ROW.match(
+            [l for l in README.splitlines() if "/%s)" % repo in l][0]).group("ver")
+        try:
+            with tempfile.TemporaryDirectory() as d:
+                p = os.path.join(d, "README.md")
+                with open(p, "wb") as fh:
+                    fh.write(crlf.encode("utf-8"))
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(check_versions.update(p), 0)
+                with open(p, "rb") as fh:
+                    after = fh.read().decode("utf-8")
+        finally:
+            check_versions.latest_tag = check_versions_latest
+        self.assertEqual(after, crlf.replace("| 0.25.0 ·", "| 0.99.0 ·"))
+        self.assertNotEqual(after, crlf)
+
+    def test_command_line_write_is_reached_and_unknown_arguments_are_refused(self):
+        here = os.path.dirname(os.path.abspath(__file__))
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "README.md")
+            with open(p, "w", encoding="utf-8") as fh:
+                fh.write("# no table here\n")
+            run = lambda *a: subprocess.run([sys.executable, os.path.join(here, "check_versions.py"), *a],
+                                            capture_output=True, text=True)
+            r = run("--write", p)
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("nothing was updated", r.stdout)                 # update() ran, not main()
+            self.assertIn("nothing was checked", run(p).stdout)            # and without --write it is main()
+            for bad in ((p, "--write"), ("--write", p, p), ("--wrte", p), ("--write", "--write")):
+                r = run(*bad)
+                self.assertEqual(r.returncode, 1, bad)
+                self.assertIn("usage:", r.stderr, bad)
+
+    def test_write_refuses_an_unreadable_row_and_leaves_the_file(self):
+        bad = swap(README, "| 0.25.0 · [DOI]", "| v0.25.0 · [DOI]")
+        code, out, after = self.write_on(bad, {"cryptovalid-opencore": "0.26.0"})
+        self.assertEqual((code, after), (1, bad))
+        self.assertIn("version not readable", out)
 
     def test_a_row_whose_version_cannot_be_read_is_a_mismatch(self):
         # «v0.25.0» instead of «0.25.0»: the old script skipped the row and said `mismatches: 0`

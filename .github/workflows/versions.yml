@@ -1,16 +1,23 @@
 name: versions
 # The version column of the project table must equal each repository's newest release: checked on every change here and
-# every Monday, so a release elsewhere that leaves this page behind turns this repository red.
+# every Monday, so a release elsewhere that leaves this page behind turns this repository red. Since 2026-11-23 a daily
+# job also sets that column to the newest releases by itself (only the version numbers: the descriptions are claims and
+# stay with a person). It checks the new page itself and commits through the GitHub contents API, so the commit is
+# signed by GitHub (a commit made with the workflow token starts no other workflow run).
 on:
   push:
   workflow_dispatch:
   schedule:
-    - cron: "41 6 * * 1"
+    - cron: "41 6 * * 1"   # check
+    - cron: "17 5 * * *"   # update
+permissions:
+  contents: read
 jobs:
   table-matches-releases:
+    if: github.event.schedule != '17 5 * * *'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Every version in the table is the newest release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -19,10 +26,50 @@ jobs:
     # Offline: the counts and names the README states («all seven», «three IETF Internet-Drafts», «seven pull requests»,
     # the «Start here» packages…) against the table and TRACK_RECORD.md; first the tests, so that a check that can no
     # longer fail is seen before its green result is trusted.
+    if: github.event.schedule != '17 5 * * *'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: The checks can fail (unit tests with positive controls)
-        run: python3 -m unittest -v test_check_profile
+        run: python3 test_check_profile.py -v
       - name: Every count in the prose equals what the page lists
         run: python3 check_profile.py README.md TRACK_RECORD.md
+  update-versions:
+    # Daily, or by hand: the version column follows the newest releases. Only on master (the default branch, measured
+    # 2026-11-23); the new README is checked here, before the commit, with the same two checks as above.
+    if: (github.event.schedule == '17 5 * * *' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: The checks can fail (unit tests with positive controls)
+        run: python3 test_check_profile.py
+      - name: Set the version column to the newest releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -o pipefail   # the default shell is `bash -e`: without this, tee hides exit 1 of the script
+          python3 check_versions.py --write README.md | tee "$RUNNER_TEMP/changed.txt"
+      - name: The new page passes both checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 check_versions.py README.md
+          python3 check_profile.py README.md TRACK_RECORD.md
+      - name: Commit README.md if a version changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: master
+        run: |
+          if git diff --quiet -- README.md; then echo "no version changed"; exit 0; fi
+          git diff -- README.md
+          changed="$(grep '^changed:' "$RUNNER_TEMP/changed.txt" | cut -c10-)"
+          blob="$(git rev-parse HEAD:README.md)"
+          base64 -w0 README.md > "$RUNNER_TEMP/readme.b64"
+          gh api -X PUT "repos/$REPO/contents/README.md" \
+            -f message="README: version column set to the newest releases ($changed)" \
+            -F content=@"$RUNNER_TEMP/readme.b64" -f sha="$blob" -f branch="$BRANCH" --jq '.commit.sha'
