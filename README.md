@@ -1,8 +1,8 @@
 ## Roberto Locatelli — verifiable compliance evidence, in the open
 
-Independent developer (fintech / regtech). Everything here is measured before it is claimed: every release
-runs its checks in CI and lists its assets in a `SHA256SUMS`; four of the six projects add independent verifiers in
-other languages checked by a differential oracle, and a KMS-signed evidence pack in each release; all six carry a Zenodo DOI (the
+Independent developer (fintech / regtech). Everything here is measured before it is claimed: the newest release of every project
+runs its checks in CI and lists its assets in a `SHA256SUMS`; four of the nine projects add independent verifiers in
+other languages checked by a differential oracle, and a KMS-signed evidence pack in that release; seven of the nine carry a Zenodo DOI (the
 concept DOI below always resolves to the latest version). Public interventions by my AI agent (Noûs) are signed as
 such; I review them and I am accountable for them.
 
@@ -22,6 +22,9 @@ pip install "rigorous-levels @ https://github.com/robertolocatelli81-dev/rigorou
 | [ap2-evidence-pack](https://github.com/robertolocatelli81-dev/ap2-evidence-pack) | Offline-verifiable dispute evidence for AP2 SD-JWT mandates, conformance vectors | 1.10.0 · [DOI](https://doi.org/10.5281/zenodo.22539659) · `pip install ap2-evidence-pack` |
 | [x402-signature-vectors](https://github.com/robertolocatelli81-dev/x402-signature-vectors) | Conformance vectors for the x402 signature layer (EIP-712, secp256k1 recovery), cross-validated against libsecp256k1 and eth-account; 84 vectors (34 accept, 50 reject), three from real x402 payments | 1.6.0 · [DOI](https://doi.org/10.5281/zenodo.24172853) |
 | [rigorous-levels](https://github.com/robertolocatelli81-dev/rigorous-levels) | Guaranteed eigenvalue intervals, truncation included, for charge-basis rotors (transmon), the fluxonium, Mathieu characteristic values, the spherical rotor and the 1Σ molecule; a sandboxed multiport checks other solvers against them | 0.3.1 · [DOI](https://doi.org/10.5281/zenodo.24172688) · `pip install rigorous-levels` |
+| [agent-payment-chain](https://github.com/robertolocatelli81-dev/agent-payment-chain) | Offline verifier of payments made by AI agents, one bundle in and one verdict out: the AP2 mandate, the x402 payment (EIP-3009, Permit2, ERC-7710, auth-capture, Solana, XRPL, Stellar), the acceptance record and the links between them, checked against the chain data the bundle carries. Python standard library and two files of x402-signature-vectors pinned by SHA-256; the mandate checks also need ap2-evidence-pack and `cryptography`, the ML-DSA signatures `cryptography` | 0.21.7 |
+| [pq-scitt](https://github.com/robertolocatelli81-dev/pq-scitt) | Checks hash-chained evidence logs offline and exports them as IETF SCITT Transparent Statements (COSE_Sign1, RFC 9943, with RFC 9162 inclusion proofs in the receipts, RFC 9942), verified by a closed verifier; Ed25519 or ML-DSA-65 signatures, SLH-DSA (FIPS 205) anchors, signing keys kept in a PKCS#11 HSM, AWS KMS, HashiCorp Vault Transit or a NetHSM | 0.1.1 · [DOI](https://doi.org/10.5281/zenodo.24172832) |
+| [work-acceptance-check-omega](https://github.com/robertolocatelli81-dev/work-acceptance-check-omega) | war-verify: an independent verifier of work-acceptance records (Trilatic draft profile 1.4.12, vectors 01-128), written from the profile README, the published test vectors and the RFCs it names (the parts of the reference code that were read are listed in its README); a member it does not understand is refused, or listed in its notes in the cases its README names; none is ignored in silence. Its new vectors are CC0; third-party inputs are fetched by pinned SHA-256, not included | 0.12.1 |
 
 Where others name this work — three IETF Internet-Drafts (individual submissions), the Tersign, Verax, APS and ScopeBlind
 conformance suites (cryptovalid-opencore is one of the four implementations ScopeBlind lists as conformant), fixes made

@@ -93,13 +93,14 @@ def claims(readme, track, corpus=None):
             d["note"] = note
         out.append(d)
 
-    # 1. «N of the M projects», «all M carry a Zenodo DOI»: M is the number of table rows
+    # 1. «N of the M projects», «all M carry a Zenodo DOI» or «K of the M carry a Zenodo DOI»: M is the number of table
+    # rows, and K (M after «all») the number of rows with a Zenodo DOI link
     m = re.search(r"(\w+) of the (\w+) projects add independent verifiers", flat)
     add("of-the-M-projects equals table rows", number(m.group(2)) if m else None, n)
-    m2 = re.search(r"all (\w+) carry a Zenodo DOI", flat)
-    add("all-M-carry-a-DOI equals table rows", number(m2.group(1)) if m2 else None, n)
+    m2 = re.search(r"(?:all (?P<all>\w+)|(?P<k>\w+) of the (?P<m>\w+)) carry a Zenodo DOI", flat)
+    add("DOI sentence: M equals table rows", number(m2.group("all") or m2.group("m")) if m2 else None, n)
     with_doi = sum(1 for r in table if re.search(r"\[DOI\]\(https://doi\.org/10\.\d+/zenodo\.\d+\)", r["latest"]))
-    add("rows with a Zenodo DOI link", number(m2.group(1)) if m2 else None, with_doi)
+    add("rows with a Zenodo DOI link", number(m2.group("all") or m2.group("k")) if m2 else None, with_doi)
 
     # 2. «Start here»: every `pip install …` line names a table row whose Latest cell says `pip install X`. Two forms
     # are read, `pip install X` and `pip install "X @ URL"`; any other line is counted and never matched (not skipped)

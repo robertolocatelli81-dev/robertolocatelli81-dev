@@ -3,7 +3,7 @@
 unit tests must then fail. A mutant that survives is a rule no test protects. Offline, standard library; works on
 temporary copies, writes nothing here.
 
-    python3 controllo_positivo.py        # prints `mutanti=32 uccisi=32 sopravvissuti=0`, exit 0; exit 1 if one survives
+    python3 controllo_positivo.py        # prints `mutanti=46 uccisi=46 sopravvissuti=0`, exit 0; exit 1 if one survives
 
 The unmutated copy is run first: if the tests do not pass on it, «killed» would mean nothing, and the run stops (exit 2)."""
 import os
@@ -49,6 +49,20 @@ PROFILO = [
  ("check_profile.py", 'os.path.join(os.path.dirname(readme_path), "TRACK_RECORD.md")', '"TRACK_RECORD.md"'),
  ("check_profile.py", '" ".join(track.split()))', 'track)'),
  ("check_profile.py", '"`pip install %s`" % p', '"pip install %s" % p'),
+ ("check_profile.py", 'number(m2.group("all") or m2.group("k"))', 'number(m2.group("all") or m2.group("m"))'),
+ ("check_profile.py", 'number(m2.group("all") or m2.group("m"))', 'number(m2.group("all") or m2.group("k"))'),
+ ("check_versions.py", 'ok = name in EXCLUDED', 'ok = True'),
+ ("check_versions.py", 'if not fork and has_release(n)', 'if has_release(n)'),
+ ("check_versions.py", 'if name in table or name not in released:', 'if name in table:'),
+ ("check_versions.py", 'if name in table or name not in released:', 'if name not in released:'),
+ ("check_versions.py", 'if not table or any(', 'if any('),
+ ("check_versions.py", 'any(LINKED.match(l) and not ROW.match(l) for l in lines)', 'False'),
+ ("check_versions.py", 'if "HTTP 404" in r.stderr:', 'if True:'),
+ ("check_versions.py", 'return [(n, f == "true") for n, f in', 'return [(n, f == "True") for n, f in'),
+ ("check_versions.py", '["gh", "api", "--paginate", f"users', '["gh", "api", f"users'),
+ ("check_versions.py", 'capture_output=True, text=True, check=True).stdout\n    return [(n, f', 'capture_output=True, text=True).stdout\n    return [(n, f'),
+ ("check_versions.py", 'return 1 if bad else 0\n\n\nif __name__', 'return 0\n\n\nif __name__'),
+ ("check_versions.py", '"--missing": missing,', '"--missing": main,'),
 ]
 
 def run(files, src, module, target=None, old=None, new=None):

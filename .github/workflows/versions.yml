@@ -1,21 +1,26 @@
 name: versions
 # The version column of the project table must equal each repository's newest release: checked on every change here and
-# every Monday, so a release elsewhere that leaves this page behind turns this repository red. Since 2026-11-23 a daily
-# job also sets that column to the newest releases by itself (only the version numbers: the descriptions are claims and
-# stay with a person). It checks the new page itself and commits through the GitHub contents API, so the commit is
-# signed by GitHub (a commit made with the workflow token starts no other workflow run).
+# every Monday, so a release elsewhere that leaves this page behind turns this repository red. Since 2026-11-23 a job
+# also sets that column to the newest releases by itself (only the version numbers: the descriptions are claims and
+# stay with a person); hourly since 2026-11-25. It checks the new page itself and commits through the GitHub contents
+# API, so the commit is signed by GitHub (a commit made with the workflow token starts no other workflow run).
+# Hourly, not started by each release: a release in another repository can start a run here only with a
+# repository_dispatch sent with a token that can write to this repository, and the workflow token of that repository
+# cannot; that would mean a personal token kept as a secret in every repository. An hourly run needs only this
+# repository's own token. Since 2026-11-25 the runs also fail, with the name, when a public repository of this account
+# has a release and is neither a row of the table nor in EXCLUDED (check_versions.py --missing).
 on:
   push:
   workflow_dispatch:
   schedule:
     - cron: "41 6 * * 1"   # check
-    - cron: "17 5 * * *"   # update
+    - cron: "17 * * * *"   # update, hourly
 permissions:
   contents: read
 jobs:
   table-matches-releases:
-    # Not in the daily update run, nor in a run started by hand: there the update job checks the new page itself, and this
-    # job would read the page as it was before the update (a red run on 2026-11-23, 45245456118).
+    # Not in the hourly update run, nor in a run started by hand: there the update job checks the new page itself, and
+    # this job would read the page as it was before the update (a red run on 2026-11-23, 45245456118).
     if: github.event_name == 'push' || github.event.schedule == '41 6 * * 1'
     runs-on: ubuntu-latest
     steps:
@@ -24,12 +29,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 check_versions.py README.md
+      - name: Every public repository with a release is a row of the table, or excluded by name
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 check_versions.py --missing README.md
   prose-matches-table-and-track-record:
     # Offline: the counts and names the README states («all seven», «three IETF Internet-Drafts», «seven pull requests»,
     # the «Start here» packages…) against the table and TRACK_RECORD.md; first the tests, so that a check that can no
     # longer fail is seen before its green result is trusted.
-    # Not in the daily update run, nor in a run started by hand: there the update job checks the new page itself, and this
-    # job would read the page as it was before the update (a red run on 2026-11-23, 45245456118).
+    # Not in the hourly update run, nor in a run started by hand: there the update job checks the new page itself, and
+    # this job would read the page as it was before the update (a red run on 2026-11-23, 45245456118).
     if: github.event_name == 'push' || github.event.schedule == '41 6 * * 1'
     runs-on: ubuntu-latest
     steps:
@@ -39,9 +48,11 @@ jobs:
       - name: Every count in the prose equals what the page lists
         run: python3 check_profile.py README.md TRACK_RECORD.md
   update-versions:
-    # Daily, or by hand: the version column follows the newest releases. Only on master (the default branch, measured
-    # 2026-11-23); the new README is checked here, before the commit, with the same two checks as above.
-    if: (github.event.schedule == '17 5 * * *' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/master'
+    # Hourly, or by hand: the version column follows the newest releases. Only on master (the default branch, measured
+    # 2026-11-23); the new README is checked here, before the commit, with the same two checks as above. The check for
+    # projects missing from the table runs last, after the commit: a missing row needs a person and turns the run red
+    # with its name, but does not hold back the version numbers.
+    if: (github.event.schedule == '17 * * * *' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -77,3 +88,7 @@ jobs:
           gh api -X PUT "repos/$REPO/contents/README.md" \
             -f message="README: version column set to the newest releases ($changed)" \
             -F content=@"$RUNNER_TEMP/readme.b64" -f sha="$blob" -f branch="$BRANCH" --jq '.commit.sha'
+      - name: Every public repository with a release is a row of the table, or excluded by name
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 check_versions.py --missing README.md

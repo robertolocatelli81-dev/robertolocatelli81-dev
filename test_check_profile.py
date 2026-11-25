@@ -76,7 +76,7 @@ class PositiveControls(unittest.TestCase):
     def test_a_row_removed(self):
         st = states(drop_line(README, "| [omega-evidence]"))
         self.assertEqual(st["of-the-M-projects equals table rows"], "contradicted")
-        self.assertEqual(st["all-M-carry-a-DOI equals table rows"], "contradicted")
+        self.assertEqual(st["DOI sentence: M equals table rows"], "contradicted")
         self.assertEqual(st["rows with a Zenodo DOI link"], "contradicted")
 
     def test_a_doi_removed_from_one_row(self):
@@ -85,8 +85,19 @@ class PositiveControls(unittest.TestCase):
 
     def test_prose_says_eight_projects(self):
         st = states(swap(README, "all seven carry", "all eight carry"))
-        self.only(st, "all-M-carry-a-DOI equals table rows", also=("rows with a Zenodo DOI link",))
+        self.only(st, "DOI sentence: M equals table rows", also=("rows with a Zenodo DOI link",))
         self.assertEqual(st["rows with a Zenodo DOI link"], "contradicted")
+
+    def test_the_k_of_m_form_of_the_doi_sentence(self):
+        # «K of the M carry a Zenodo DOI» (2026-11-25, when three rows without a DOI came in): M against the rows,
+        # K against the rows with a DOI link; the frozen page has seven rows, all with a DOI
+        self.assertEqual(states(swap(README, "all seven carry", "seven of the seven carry"))["rows with a Zenodo DOI link"],
+                         "verified")
+        self.only(states(swap(README, "all seven carry", "six of the seven carry")), "rows with a Zenodo DOI link")
+        self.only(states(swap(README, "all seven carry", "seven of the eight carry")), "DOI sentence: M equals table rows")
+        st = states(swap(swap(README, "all seven carry", "six of the seven carry"),
+                         " · [DOI](https://doi.org/10.5281/zenodo.22539633)", ""))
+        self.assertEqual(st["rows with a Zenodo DOI link"], "verified")
 
     def test_start_here_names_a_package_that_is_not_a_row(self):
         st = states(swap(README, "pip install rigorous-levels        #", "pip install rigorous-level         #"))
@@ -113,7 +124,7 @@ class PositiveControls(unittest.TestCase):
     def test_numbers_written_as_digits_are_read(self):
         self.assertEqual(check_profile.number("7"), 7)
         st = states(swap(README, "all seven carry", "all 7 carry"))
-        self.assertEqual(st["all-M-carry-a-DOI equals table rows"], "verified")
+        self.assertEqual(st["DOI sentence: M equals table rows"], "verified")
 
     def test_a_doi_link_that_is_not_zenodo_does_not_count(self):
         st = states(swap(README, "https://doi.org/10.5281/zenodo.22539633", "https://example.org/doi"))
@@ -182,7 +193,7 @@ class PositiveControls(unittest.TestCase):
 class ASentenceThatDisappears(unittest.TestCase):
     def test_reworded_sentence_is_not_evaluated_and_the_run_exits_2(self):
         readme = swap(README, "all seven carry a Zenodo DOI", "each one has a Zenodo DOI")
-        self.assertEqual(states(readme)["all-M-carry-a-DOI equals table rows"], "not_evaluated")
+        self.assertEqual(states(readme)["DOI sentence: M equals table rows"], "not_evaluated")
         with tempfile.TemporaryDirectory() as d:
             for name, text in (("README.md", readme), ("TRACK_RECORD.md", TRACK)):
                 with open(os.path.join(d, name), "w", encoding="utf-8") as fh:
@@ -416,6 +427,116 @@ class CheckVersions(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("nothing was checked", out)
 
+
+
+class MissingRows(unittest.TestCase):
+    """check_versions.py --missing with the network calls replaced: every public repository of the account with a
+    release is a row or in EXCLUDED (2026-11-25: three released projects had never been added, and nothing said so)."""
+
+    ROWS = [r["repo"] for r in check_profile.rows(README)]
+
+    def run_on(self, repos, released, excluded=None, readme=README):
+        saved = check_versions.public_repos, check_versions.has_release, check_versions.EXCLUDED
+        check_versions.public_repos = lambda: list(repos)
+        check_versions.has_release = lambda repo: repo in released
+        check_versions.EXCLUDED = dict(excluded or {})
+        try:
+            with tempfile.TemporaryDirectory() as d:
+                p = os.path.join(d, "README.md")
+                with open(p, "w", encoding="utf-8") as fh:
+                    fh.write(readme)
+                out = io.StringIO()
+                with contextlib.redirect_stdout(out):
+                    return check_versions.missing(p), out.getvalue()
+        finally:
+            check_versions.public_repos, check_versions.has_release, check_versions.EXCLUDED = saved
+
+    def repos(self, *extra, fork=()):
+        return [(n, False) for n in self.ROWS + list(extra)] + [(n, True) for n in fork]
+
+    def test_every_released_repository_a_row_is_zero(self):
+        code, out = self.run_on(self.repos("profile-page"), set(self.ROWS))
+        self.assertEqual(code, 0, out)
+        self.assertIn("missing: 0", out)
+
+    def test_a_released_repository_not_in_the_table_fails_with_its_name(self):
+        code, out = self.run_on(self.repos("pq-scitt"), set(self.ROWS) | {"pq-scitt"})
+        self.assertEqual(code, 1)
+        self.assertIn('"repo": "pq-scitt", "ok": false', out)
+        self.assertIn("missing: 1", out)
+
+    def test_an_excluded_repository_passes_and_says_why(self):
+        code, out = self.run_on(self.repos("pq-scitt"), set(self.ROWS) | {"pq-scitt"}, {"pq-scitt": "a reason"})
+        self.assertEqual(code, 0, out)
+        self.assertIn("excluded: a reason", out)
+
+    def test_an_excluded_name_that_is_also_a_row_fails(self):
+        code, out = self.run_on(self.repos(), set(self.ROWS), {"omega-evidence": "a reason"})
+        self.assertEqual(code, 1)
+        self.assertIn("also a row of the table", out)
+
+    def test_a_stale_exclusion_fails(self):
+        for repos in (self.repos("old-project"), self.repos()):        # no release any more, or no public repository
+            code, out = self.run_on(repos, set(self.ROWS), {"old-project": "a reason"})
+            self.assertEqual(code, 1)
+            self.assertIn("not a public repository with a release", out)
+
+    def test_forks_and_repositories_without_a_release_are_not_asked_for(self):
+        code, out = self.run_on(self.repos("no-release-yet", fork=("someone-elses",)),
+                                set(self.ROWS) | {"someone-elses"})
+        self.assertEqual(code, 0, out)
+        self.assertEqual(self.run_on(self.repos("someone-elses"), set(self.ROWS) | {"someone-elses"})[0], 1)  # control
+
+    def test_a_table_that_cannot_be_read_in_full_checks_nothing(self):
+        for readme in ("# no table here\n", swap(README, "| 0.25.0 · [DOI]", "| v0.25.0 · [DOI]")):
+            code, out = self.run_on(self.repos(), set(self.ROWS), readme=readme)
+            self.assertEqual(code, 1)
+            self.assertIn("nothing was checked", out)
+
+    def test_has_release_reads_404_as_no_release_and_raises_on_any_other_error(self):
+        saved = check_versions.subprocess.run
+        try:
+            for rc, err, want in ((0, "", True), (1, "gh: Not Found (HTTP 404)", False), (1, "HTTP 403: rate limit", None)):
+                check_versions.subprocess.run = lambda *a, **k: subprocess.CompletedProcess(a, rc, "v1.0.0\n", err)
+                if want is None:
+                    self.assertRaises(RuntimeError, check_versions.has_release, "x")
+                else:
+                    self.assertIs(check_versions.has_release("x"), want)
+        finally:
+            check_versions.subprocess.run = saved
+
+    def test_public_repos_reads_the_fork_flag_asks_for_every_page_and_raises_when_gh_fails(self):
+        # the list of repositories is the other half of --missing: a fork flag read wrong, a first page only, or a
+        # failed call read as a shorter list would each let a released project go unseen
+        saved = check_versions.subprocess.run
+        seen = []
+        try:
+            def fake(cmd, **k):
+                seen.append((cmd, k))
+                return subprocess.CompletedProcess(cmd, 0, "mine\tfalse\ntheirs\ttrue\n", "")
+            check_versions.subprocess.run = fake
+            self.assertEqual(check_versions.public_repos(), [("mine", False), ("theirs", True)])
+            cmd, k = seen[0]
+            self.assertIn("--paginate", cmd)
+            self.assertTrue(k.get("check"))
+        finally:
+            check_versions.subprocess.run = saved
+
+    def test_command_line_missing_is_reached_and_mixed_modes_are_refused(self):
+        here = os.path.dirname(os.path.abspath(__file__))
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "README.md")
+            with open(p, "w", encoding="utf-8") as fh:
+                fh.write("# no table here\n")
+            run = lambda *a: subprocess.run([sys.executable, os.path.join(here, "check_versions.py"), *a],
+                                            capture_output=True, text=True)
+            r = run("--missing", p)
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("the table cannot be read in full", r.stdout)     # missing() ran, before any network call
+            for bad in (("--missing", "--write", p), ("--write", "--missing"), (p, "--missing")):
+                r = run(*bad)
+                self.assertEqual(r.returncode, 1, bad)
+                self.assertIn("usage:", r.stderr, bad)
 
 if __name__ == "__main__":
     unittest.main()
